@@ -31,7 +31,7 @@ pip3 install -r requirements.txt
  export OPENAI_API_KEY=your_api_key
 ```
 
-### 3. Run the application
+#### 3. Run the application
 ```
 flask run
 ```
