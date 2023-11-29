@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ChatGPT Proxy</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <label for="system-input">System Message:</label>
+    <input type="text" id="system-input" placeholder="Enter system message"
+           value="You are a helpful assistant."/>
+    <div id="chat-container"></div>
+    <hr/>
+    <label for="user-input">User Message:</label><BR>
+    <textarea id="user-input" placeholder="Enter user message"></textarea><BR>
+    <button onclick="sendChatMessages()" id="send-button">Send Messages</button>
+    <div id="loader" style="display: none;">
+        <div class="loader"></div>
+    </div>
+</div>
+
+<script>
+    const password = '{{encr_password}}'
+    let messages = [];
+
+    async function sendChatMessages() {
+        const sendButton = document.getElementById('send-button');
+        const loader = document.getElementById('loader');
+        sendButton.disabled = true;
+        loader.style.display = 'block';
+        const url = '/m';
+
+        const systemMessage = document.getElementById('system-input').value.trim();
+        const userMessage = document.getElementById('user-input').value.trim();
+
+        if (systemMessage) {
+            messages[0] = {
+                "role": "system",
+                "content": systemMessage
+            }
+        }
+
+        if (userMessage) {
+            messages.push({
+                "role": "user",
+                "content": userMessage
+            });
+        }
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: encrypt_object(messages)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+
+                decrypted_message = JSON.parse(decrypt_object(result.message))
+                if (userMessage) {
+                    displayMessage(userMessage, 'user');
+                }
+
+                displayMessage(decrypted_message.choices[0].message.content, 'bot');
+            } else {
+                console.error('Request failed with status:', response.status);
+            }
+        } catch (error) {
+            console.error('Error occurred while sending chat messages:', error);
+        } finally {
+            sendButton.disabled = false;
+            loader.style.display = 'none';
+        }
+
+    }
+
+    function encrypt_object(input) {
+        const jsonString = JSON.stringify(input);
+        return CryptoJS.AES.encrypt(jsonString, password).toString()
+    }
+
+    function decrypt_object(input) {
+
+        const decryptedBytes = CryptoJS.AES.decrypt(input, password);
+        return decryptedBytes.toString(CryptoJS.enc.Utf8);
+
+    }
+
+    function displayMessage(message, sender) {
+        const chatContainer = document.getElementById('chat-container');
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add(sender === 'bot' ? 'bot-message' : 'user-message');
+
+        if (sender === 'system') {
+            messageDiv.classList.add('system-message');
+        }
+
+        messageDiv.innerText = message;
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+</script>
+
+<style>
+    .user-message {
+        background-color: #DCF8C6;
+        padding: 8px;
+        margin: 8px;
+        border-radius: 8px;
+        align-self: flex-end;
+    }
+
+    .bot-message {
+        background-color: #EAE7FF;
+        padding: 8px;
+        margin: 8px;
+        border-radius: 8px;
+        align-self: flex-start;
+    }
+
+    .system-message {
+        color: gray;
+        font-style: italic;
+        text-align: center;
+        display: none;
+    }
+
+    #user-input {
+        width: 90%;
+        height: 80px;
+        padding: 8px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+        resize: vertical;
+    }
+
+    #system-input {
+        width: 100%;
+        padding: 8px;
+    }
+
+    .container {
+        width: 60vw;
+        margin: 0 auto;
+    }
+
+    .loader {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #000000;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+</style>
+</body>
+</html>
